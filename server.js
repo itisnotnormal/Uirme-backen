@@ -89,7 +89,7 @@ app.post("/auth/login", async (req, res) => {
 app.post(
   "/auth/register",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     const { email, password, role, school_id, name, city } = req.body;
     try {
@@ -153,7 +153,7 @@ app.post(
 app.put(
   "/users/:id/add-child",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const { student_id } = req.body;
@@ -189,7 +189,7 @@ app.put(
 app.put(
   "/users/:id/remove-child",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const { student_id } = req.body;
@@ -395,7 +395,7 @@ app.get("/users", authMiddleware, async (req, res) => {
 app.delete(
   "/users/:id",
   authMiddleware,
-  roleMiddleware(["main_admin", "school_admin", "district_admin"]),
+  roleMiddleware(["main_admin", "school_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const userToDelete = await User.findById(req.params.id);
@@ -433,7 +433,7 @@ app.get("/students", authMiddleware, async (req, res) => {
       query = { school_id: req.query.school_id };
     }
     const students = await Student.find(query)
-      .populate("user_id", "email password")  // Populate email and password
+      .populate("user_id", "email password")
       .sort({ created_at: -1 });
     res.json(students);
   } catch (err) {
@@ -487,7 +487,7 @@ app.get(
 app.post(
   "/students",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     const { name, group, specialty, email, password, school_id } = req.body;
     try {
@@ -529,7 +529,7 @@ app.post(
 app.put(
   "/students/:id",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const student = await Student.findById(req.params.id);
@@ -554,7 +554,7 @@ app.put(
         }
       }
 
-      // Extract password and other other student updates
+      // Extract password and other student updates
       const { password, email, ...studentUpdates } = req.body;
 
       // If email is provided, check for uniqueness in User collection
@@ -595,7 +595,7 @@ app.put(
 app.delete(
   "/students/:id",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const student = await Student.findById(req.params.id);
@@ -666,7 +666,7 @@ app.get("/events/active", authMiddleware, async (req, res) => {
 app.post(
   "/events",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const { name, schedule, description, is_active, teacher_id, school_id } = req.body;
@@ -682,7 +682,7 @@ app.post(
       if (!teacher_id) return res.status(400).json({ error: "Teacher ID required" });
       const teacher = await User.findOne({ _id: teacher_id, role: "teacher", school_id });
       if (!teacher) return res.status(400).json({ error: "Invalid teacher: not found or doesn't belong to the school" });
-      const trimmedName = name.trim(); // Trim the name to remove leading/trailing spaces
+      const trimmedName = name.trim();
       const event = new Event({
         name: trimmedName,
         schedule,
@@ -705,7 +705,7 @@ app.post(
 app.put(
   "/events/:id",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const event = await Event.findById(req.params.id);
@@ -718,7 +718,7 @@ app.put(
         if (school.city !== req.user.city) return res.status(403).json({ error: "Access denied" });
       }
       const { name, schedule, description, is_active, teacher_id } = req.body;
-      const trimmedName = name.trim(); // Trim the name to remove leading/trailing spaces
+      const trimmedName = name.trim();
       let updates = { name: trimmedName, schedule, description, is_active, updated_at: new Date() };
       if (teacher_id) {
         const teacher = await User.findOne({ _id: teacher_id, role: "teacher", school_id: event.school_id });
@@ -738,7 +738,7 @@ app.put(
 app.put(
   "/events/:id/toggle-active",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "teacher", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin", "teacher"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const event = await Event.findById(req.params.id);
@@ -795,7 +795,7 @@ app.put(
 app.delete(
   "/events/:id",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const event = await Event.findById(req.params.id);
@@ -845,7 +845,7 @@ app.get("/attendance", authMiddleware, async (req, res) => {
       .populate({
         path: "student_id",
         select: "name group specialty school_id",
-        options: { strictPopulate: false } // Игнорировать ошибки populate
+        options: { strictPopulate: false }
       })
       .lean();
     const historicalRecords = await HistoricalAttendanceRecord.find(query)
@@ -856,7 +856,7 @@ app.get("/attendance", authMiddleware, async (req, res) => {
       })
       .lean();
     let allRecords = [...currentRecords, ...historicalRecords];
-    allRecords = allRecords.filter(record => record.student_id); // Фильтровать записи без student_id
+    allRecords = allRecords.filter(record => record.student_id);
     allRecords.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     res.json(
       allRecords.map((record) => ({
@@ -901,8 +901,6 @@ app.get(
       const event = await Event.findOne(eventQuery).collation({ locale: "ru", strength: 2 });
       if (!event) return res.status(404).json({ error: "Event not found" });
 
-
-      // Access checks
       if (req.user.role === "school_admin" && event.school_id.toString() !== req.user.school_id) {
         return res.status(403).json({ error: "Access denied" });
       }
@@ -925,9 +923,8 @@ app.get(
         }
       });
 
-      // Filter out records with null student_id and map valid ones
       const filteredRecords = records
-        .filter((record) => record.student_id != null) // Ensure student_id exists
+        .filter((record) => record.student_id != null)
         .map((record) => ({
           _id: record._id,
           student_id: record.student_id._id,
@@ -1043,7 +1040,7 @@ app.get(
 app.post(
   "/attendance",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "teacher", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin", "teacher"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const { student_id, event_name, timestamp, scanned_by } = req.body;
@@ -1118,7 +1115,6 @@ app.post(
       await record.save();
       console.log("Saved attendance record:", record);
 
-      // Save to HistoricalAttendanceRecord
       const historicalRecord = new HistoricalAttendanceRecord({
         student_id,
         event_name: trimmedEventName,
@@ -1153,7 +1149,7 @@ app.post(
 app.delete(
   "/attendance/:id",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "teacher", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin", "teacher"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const record = await AttendanceRecord.findById(req.params.id);
@@ -1178,7 +1174,7 @@ app.delete(
 app.delete(
   "/attendance/event/:eventName/delete-all",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "teacher", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin", "teacher"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const eventName = req.params.eventName;
@@ -1304,7 +1300,7 @@ app.get("/auth/me", authMiddleware, async (req, res) => {
 app.put(
   "/users/:id",
   authMiddleware,
-  roleMiddleware(["school_admin", "main_admin", "district_admin"]),
+  roleMiddleware(["school_admin", "main_admin"]), // Удаляем district_admin
   async (req, res) => {
     try {
       const { id } = req.params;
