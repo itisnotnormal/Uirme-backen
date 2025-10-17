@@ -1349,7 +1349,98 @@ app.put(
   }
 );
 
+app.get("/schools/:schoolId/users/:role", authMiddleware, async (req, res) => {
+  const { schoolId, role } = req.params;
+  const { user } = req;
 
+  try {
+    let query = { role };
+    if (user.role === "district_admin") {
+      const schools = await School.find({ city: user.city });
+      const schoolIds = schools.map((school) => school._id);
+      query = { ...query, school_id: { $in: schoolIds } };
+    } else if (user.role === "school_admin") {
+      query = { ...query, school_id: user.school_id };
+    } else if (user.role === "main_admin") {
+      query = { ...query, school_id: schoolId };
+    }
+
+    const users = await User.find(query).select("-password");
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/schools/:schoolId/students", authMiddleware, async (req, res) => {
+  const { schoolId } = req.params;
+  const { user } = req;
+
+  try {
+    let query = {};
+    if (user.role === "district_admin") {
+      const schools = await School.find({ city: user.city });
+      const schoolIds = schools.map((school) => school._id);
+      query = { school_id: { $in: schoolIds } };
+    } else if (user.role === "school_admin") {
+      query = { school_id: user.school_id };
+    } else if (user.role === "main_admin") {
+      query = { school_id: schoolId };
+    }
+
+    const students = await Student.find(query);
+    res.json(students);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/schools/:schoolId/events", authMiddleware, async (req, res) => {
+  const { schoolId } = req.params;
+  const { user } = req;
+
+  try {
+    let query = {};
+    if (user.role === "district_admin") {
+      const schools = await School.find({ city: user.city });
+      const schoolIds = schools.map((school) => school._id);
+      query = { school_id: { $in: schoolIds } };
+    } else if (user.role === "school_admin") {
+      query = { school_id: user.school_id };
+    } else if (user.role === "main_admin") {
+      query = { school_id: schoolId };
+    }
+
+    const events = await Event.find(query);
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/attendance/event/:eventName", authMiddleware, async (req, res) => {
+  const { eventName } = req.params;
+  const { user } = req;
+  const { schoolId } = req.query;
+
+  try {
+    let query = { eventName };
+    if (user.role === "district_admin") {
+      const schools = await School.find({ city: user.city });
+      const schoolIds = schools.map((school) => school._id);
+      query = { ...query, school_id: { $in: schoolIds } };
+    } else if (user.role === "school_admin") {
+      query = { ...query, school_id: user.school_id };
+    } else if (user.role === "main_admin") {
+      query = { ...query, school_id: schoolId };
+    }
+
+    const records = await AttendanceRecord.find(query).populate("student_id", "name");
+    res.json(records);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
